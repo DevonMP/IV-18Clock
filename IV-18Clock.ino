@@ -1,4 +1,8 @@
 
+#include <Wire.h>
+#include <Sodaq_DS3231.h>
+
+
 #define dataPin 13
 #define clockPin 12
 #define loadPin 11
@@ -14,17 +18,20 @@
   4
   
 */
+
+
 const byte digits[] = {
     0b01111110, //0
     0b0110000,  //1
-    0b01101101, //2
+    0b01101101, //2s
     0b01111001, //3
     0b00110011, //4
     0b01011011, //5
     0b01011111, //6
     0b01110000, //7
     0b01111111, //8
-    0b01110011  //9
+    0b01110011,  //9
+    0b10000000 // blank
 };
 const int digitOffset = 4;
 
@@ -35,6 +42,7 @@ byte TargetDisplay[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 void setup()
 {
+  
   // put your setup code here, to run once:
   pinMode(9, INPUT_PULLUP);
   pinMode(loadPin, OUTPUT);
@@ -43,25 +51,35 @@ void setup()
   Serial.begin(9600);
   CurrentlyDisplayed[0] = digits[0];
   TargetDisplay[0] = digits[1];
+    Wire.begin();
+    rtc.begin();
 }
 
 void loop()
 {
-  static int counter = 1;
+      DateTime now = rtc.now(); //get the current date-time
+    uint32_t ts = now.getEpoch();
+    
   static unsigned long lastExecuted = 0;
 
   if (millis() - lastExecuted >= 1000)
   {
+  int hour = now.hour();
+  int minute = now.minute();
+  int second = now.second();
+
     lastExecuted = millis();
-    counter++;
-    if (counter >= 10)
-    {
-      counter = 0;
-    }
-    for(int i = 0; i< sizeof(TargetDisplay); i++){
-      TargetDisplay[i] = digits[random(0, 9)];
-    }
-    //TargetDisplay[0] = digits[counter];
+
+  TargetDisplay[0] = digits[second % 10];
+  TargetDisplay[1] = digits[(second/10) % 10];
+  TargetDisplay[2] = digits[10];
+  
+  TargetDisplay[3] = digits[minute % 10];
+  TargetDisplay[4] = digits[(minute/10) % 10];
+  TargetDisplay[5] = digits[10];
+  
+  TargetDisplay[6] = digits[hour % 10];
+  TargetDisplay[7] = digits[(hour/10) % 10];
   }
   digitalWrite(dataPin, HIGH);
   StepTransition();
